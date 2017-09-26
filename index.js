@@ -3,9 +3,16 @@ const moment = require('moment')
 const realtime = require('gtfs-realtime-bindings')
 const fetch = require('isomorphic-fetch')
 
-const stopId = 'TriMet:11503'
-const date = '20170831'
-const url = `http://localhost:8001/otp/routers/default/index/stops/${stopId}/stoptimes/${date}`
+// a two-stop sequence to be delayed
+const stop1 = 'TriMet:11503'
+const stop2 = 'TriMet:11504'
+
+// the date on which to delay all trips serving the above stops
+const date = '20170926'
+
+// the new arrival time for stop 1 (TODO: calc this automatically?)
+const delayTo = 1506798836
+const url = `http://localhost:8001/otp/routers/default/index/stops/${stop1}/stoptimes/${date}`
 
 // set up an empty GTFS-RT message
 const msg = new realtime.FeedMessage({
@@ -18,8 +25,8 @@ const msg = new realtime.FeedMessage({
 // counter for the update ids
 let i = 1
 
-// function to add a skip-stop update to the message
-function addSkippedStop (tripId) {
+// function to add a delayed-trip update to the message
+function addDelayedTrip (tripId) {
   const tripUpdate = new realtime.TripUpdate({
     trip: new realtime.TripDescriptor({
       trip_id: tripId,
@@ -27,19 +34,19 @@ function addSkippedStop (tripId) {
     })
   })
 
+  // add the first stop
   tripUpdate.stop_time_update.push(new realtime.TripUpdate.StopTimeUpdate({
-    stop_id: stopId.split(':')[1],
-    //schedule_relationship: realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.
+    stop_id: stop1.split(':')[1],
     departure: new realtime.TripUpdate.StopTimeEvent({
-      time: 1504172448
+      time: delayTo
     })
   }))
 
+  // add the second stop (OTP demands there be at least 2 affected)
   tripUpdate.stop_time_update.push(new realtime.TripUpdate.StopTimeUpdate({
-    stop_id: '11504',
-    //schedule_relationship: realtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED
+    stop_id: stop2.split(':')[1],
     departure: new realtime.TripUpdate.StopTimeEvent({
-      time: 1504173448
+      time: delayTo + 1000
     })
   }))
 
@@ -52,7 +59,7 @@ function addSkippedStop (tripId) {
 // function to write the buffer
 function writeBuffer () {
   console.log('writing gtfs protobuf')
-  fs.writeFile('skip.proto', msg.encode().toBuffer(), () => {
+  fs.writeFile('delay.proto', msg.encode().toBuffer(), () => {
     console.log('wrote file')
   })
 }
@@ -67,11 +74,9 @@ fetch(url)
     return response.json()
   })
   .then(function (results) {
-    //console.log(results)
     results.forEach(res => {
       res.times.forEach(time => {
-        //console.log(time);
-        addSkippedStop(time.tripId.split(':')[1])
+        addDelayedTrip(time.tripId.split(':')[1])
       })
     })
 
