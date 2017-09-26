@@ -1,0 +1,11 @@
+{
+  "name": "gtfs-rt-delay",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "gtfs-realtime-bindings": "^0.0.4",
+    "isomorphic-fetch": "^2.2.1",
+    "moment": "^2.18.1"
+  }
+}
