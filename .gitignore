@@ -1,0 +1,5 @@
+out/
+data/*
+!data/alert-data.tmp.js
+*.log
+node_modules/
